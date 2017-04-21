@@ -27,7 +27,7 @@ func (e *Exporter) newCollector(g *driveshaft) *collector {
 		exporter:     e,
 		driveshaft:   g,
 		up:           newFuncMetric("up", "is driveshaft up", nil),
-		threadsGauge: newFuncMetric("threads_count", "count of threads", []string{"function"}),
+		threadsGauge: newFuncMetric("threads_count", "count of threads", []string{"function", "state"}),
 	}
 }
 
@@ -54,12 +54,12 @@ func (c *collector) collectThreads(ch chan<- prometheus.Metric) {
 		float64(1),
 	)
 
-	for k, v := range t {
+	for _, v := range t {
 		ch <- prometheus.MustNewConstMetric(
 			c.threadsGauge,
 			prometheus.GaugeValue,
-			float64(v),
-			k)
+			float64(v.count),
+			v.function, v.state)
 
 	}
 }

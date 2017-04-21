@@ -51,7 +51,8 @@ curl http://localhost:8080/metrics
 
 # HELP driveshaft_threads_count count of threads
 # TYPE driveshaft_threads_count gauge
-driveshaft_threads_count{function="FakeSnaps"} 4
+driveshaft_threads_count{function="FakeSnaps",state="waiting"} 3
+driveshaft_threads_count{function="FakeSnaps",state="working"} 1
 # HELP driveshaft_up is driveshaft up
 # TYPE driveshaft_up gauge
 driveshaft_up 1
