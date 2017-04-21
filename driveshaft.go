@@ -51,7 +51,13 @@ func (d *driveshaft) getConnection() (*textproto.Conn, error) {
 	return d.conn, nil
 }
 
-func (d *driveshaft) getThreads() (map[string]int, error) {
+type threadStatus struct {
+	function string
+	state    string
+	count    int
+}
+
+func (d *driveshaft) getThreads() ([]*threadStatus, error) {
 	c, err := d.getConnection()
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to get driveshaft connection")
@@ -67,7 +73,7 @@ func (d *driveshaft) getThreads() (map[string]int, error) {
 	c.StartResponse(id)
 	defer c.EndResponse(id)
 
-	metrics := make(map[string]int)
+	metrics := make(map[string]map[string]int)
 	for {
 		data, err := c.ReadLine()
 		if err != nil {
@@ -78,21 +84,47 @@ func (d *driveshaft) getThreads() (map[string]int, error) {
 		}
 
 		// 139832651147008\tfunctionName\t0\tWaiting for work
-		// in future, we could add a label for status as well.
 		parts := strings.SplitN(data, "\t", 4)
 		if len(parts) != 4 {
 			return nil, errors.Wrap(err, "invalid threads response")
 		}
 
 		name := parts[1]
-		count, ok := metrics[name]
+		state := "unknown"
+		status := parts[3]
+		switch {
+		case strings.HasPrefix(status, "Waiting"):
+			state = "waiting"
+		case strings.HasPrefix(status, "Starting"):
+			state = "starting"
+		case strings.HasPrefix(status, "job_"):
+			state = "working"
+		}
+
+		function, ok := metrics[name]
+		if !ok {
+			metrics[name] = make(map[string]int)
+		}
+		count, ok := function[state]
 		if !ok {
 			count = 0
 		}
 		count++
 
-		metrics[name] = count
+		function[name] = count
 	}
 
-	return metrics, nil
+	var status []*threadStatus
+	for k, v := range metrics {
+		for state, count := range v {
+			s := &threadStatus{
+				function: k,
+				state:    state,
+				count:    count,
+			}
+			status = append(status, s)
+		}
+	}
+
+	return status, nil
 }
