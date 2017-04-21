@@ -103,7 +103,8 @@ func (d *driveshaft) getThreads() ([]*threadStatus, error) {
 
 		function, ok := metrics[name]
 		if !ok {
-			metrics[name] = make(map[string]int)
+			function = make(map[string]int)
+			metrics[name] = function
 		}
 		count, ok := function[state]
 		if !ok {
@@ -111,7 +112,7 @@ func (d *driveshaft) getThreads() ([]*threadStatus, error) {
 		}
 		count++
 
-		function[name] = count
+		function[state] = count
 	}
 
 	var status []*threadStatus
